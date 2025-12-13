@@ -120,23 +120,6 @@ The complete circuit design is available in the `simulation` folder. You can vie
     * Expose port 1880.
     * Import `flows/cloud_dashboard_flow.json` into the cloud instance.
     * **Configuration:** Update the "Build SAS URL" function node with your SAS Token.
-
----
-
-## 📂 Repository Structure
-
-```text
-/
-├── arduino_code/
-│   └── smart_lock.ino           # C++ Firmware for Arduino Uno
-├── flows/
-│   ├── rpi_edge_flow.json       # Node-RED flow for Raspberry Pi
-│   └── cloud_dashboard_flow.json # Node-RED flow for Azure Cloud
-├── simulation/                  # Extracted Wokwi Project Files
-│   ├── diagram.json             # Wiring logic
-│   └── sketch.ino               # Simulation code
-├── assets/
-│   ├── Architecture.png
 │   ├── Smart Lock Demo.mp4
 │   └── Wokwi_Simulation.png
 ├── README.md
