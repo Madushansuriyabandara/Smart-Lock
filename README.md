@@ -105,11 +105,17 @@ The complete circuit design is available in the `simulation` folder. You can vie
     npm install node-red-contrib-azure-iot-device node-red-contrib-azure-table-storage
     ```
 5.  Open Node-RED (`http://<PI_IP>:1880`) and Import `flows/rpi_edge_flow.json`.
-6.  **Configuration:** Update the **Azure IoT Device** node with your device's *Primary Connection String*.
+6.  **Configuration:** Update the **Azure IoT Device** node.
+    *   Open the node and paste the **Primary Connection String** you obtained from the IoT Hub (see below).
 
 ### 3. Cloud Infrastructure (Azure)
-1.  **IoT Hub:** Create a hub, register a device ID (`SmartLockPi`), and copy the connection string.
-2.  **Table Storage:** Create a Storage Account, create a table named `LockLogs`. Generate a **SAS Token** (valid for 1+ year) with Read/Write/Add permissions.
+1.  **IoT Hub:** Create a hub and register a new device ID (`SmartLockPi`).
+    *   **Get Connection String:** Go to **Devices** -> Select **SmartLockPi** -> Copy **Primary Connection String**.
+2.  **Table Storage:** Create a Storage Account and a table named `LockLogs`.
+    *   **Get SAS Token:** Go to **Security + networking** -> **Shared Access Signature**.
+    *   **Permissions:** Check **Read**, **Write**, **Add**, and **List**.
+    *   **Generate:** Click **Generate SAS and connection string**.
+    *   **Copy:** Copy the **SAS Token** field (Ensure it starts with `?`).
 3.  **App Service:** * Deploy a Docker container using the image `nodered/node-red`.
     * Expose port 1880.
     * Import `flows/cloud_dashboard_flow.json` into the cloud instance.
