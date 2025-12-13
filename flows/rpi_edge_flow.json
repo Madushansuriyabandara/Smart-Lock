@@ -1,0 +1,200 @@
+[
+    {
+        "id": "rpi_flow_tab",
+        "type": "tab",
+        "label": "Smart Lock Logic (Restored)",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "serial_in",
+        "type": "serial in",
+        "z": "rpi_flow_tab",
+        "name": "Arduino Input",
+        "serial": "arduino_serial_config",
+        "x": 70,
+        "y": 140,
+        "wires": [
+            [
+                "json_parse"
+            ]
+        ]
+    },
+    {
+        "id": "json_parse",
+        "type": "json",
+        "z": "rpi_flow_tab",
+        "name": "json",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 250,
+        "y": 140,
+        "wires": [
+            [
+                "format_for_table",
+                "3fa5822755e2c207"
+            ]
+        ]
+    },
+    {
+        "id": "format_for_table",
+        "type": "function",
+        "z": "rpi_flow_tab",
+        "name": "Format for Table",
+        "func": "// 1. Get Data\nvar data = msg.payload;\n\n// 2. Filter: Only save \"EVENT\" types\n// (Your Arduino now sends DOOR_OPEN as an EVENT, so this just works!)\nif (data.type === \"EVENT\") {\n    \n    var entity = {\n        PartitionKey: \"LockHistory\",\n        RowKey: new Date().getTime().toString(),\n        Event: data.val,      // e.g. \"LOCKED\", \"DOOR_OPEN\"\n        Vibration: data.vib,\n        Door: data.door,      // Save door state too\n        Time: new Date().toISOString()\n    };\n\n    // Format for Azure Table Storage Node\n    msg.payload = {\n        tableName: \"LockLogs\",\n        action: \"I\", // Insert\n        partitionKey: \"LockHistory\",\n        rowKey: entity.RowKey,\n        data: JSON.stringify(entity)\n    };\n    return msg;\n}\n\nreturn null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 440,
+        "y": 320,
+        "wires": [
+            [
+                "table_storage_node"
+            ]
+        ]
+    },
+    {
+        "id": "filter_commands",
+        "type": "function",
+        "z": "rpi_flow_tab",
+        "name": "Filter Commands",
+        "func": "var cmd = msg.payload;\n\n// 1. Clean up input\nif (Buffer.isBuffer(cmd)) cmd = cmd.toString();\n\nif (typeof cmd === 'string') {\n    try {\n        var parsed = JSON.parse(cmd);\n        if (typeof parsed === 'object') cmd = parsed;\n    } catch(e) {}\n}\n\nif (cmd && typeof cmd === 'object') {\n    if (cmd.data) cmd = cmd.data;\n    else if (cmd.payload) cmd = cmd.payload;\n}\n\n// ... previous code ...\n\n// 2. Allow only valid commands\nif (cmd === \"UNLOCK\" || cmd === \"LOCK\" || cmd === \"CLEAR_ALARM\") {\n    msg.payload = cmd;\n    return msg;\n}\nreturn null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 830,
+        "y": 220,
+        "wires": [
+            [
+                "serial_out"
+            ]
+        ]
+    },
+    {
+        "id": "serial_out",
+        "type": "serial out",
+        "z": "rpi_flow_tab",
+        "name": "Send to Arduino",
+        "serial": "arduino_serial_config",
+        "x": 840,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "table_storage_node",
+        "type": "Table Storage",
+        "z": "rpi_flow_tab",
+        "name": "Azure Table Storage",
+        "x": 780,
+        "y": 320,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "f80d58b1c0c65cf3",
+        "type": "azureiotdevice",
+        "z": "rpi_flow_tab",
+        "deviceid": "SmartLockPi",
+        "pnpModelid": "",
+        "connectiontype": "constr",
+        "authenticationmethod": "sas",
+        "iothub": "MaduLockHub.azure-devices.net",
+        "isIotcentral": false,
+        "scopeid": "",
+        "enrollmenttype": "group",
+        "saskey": "HostName=YOUR_IOTHUB_NAME.azure-devices.net;DeviceId=YOUR_DEVICE_ID;SharedAccessKey=YOUR_SHARED_ACCESS_KEY",
+        "certname": "",
+        "keyname": "",
+        "passphrase": "",
+        "protocol": "mqttWs",
+        "retryInterval": 10,
+        "methods": [],
+        "DPSpayload": "",
+        "gatewayHostname": "",
+        "caname": "",
+        "cert": "",
+        "key": "",
+        "ca": "",
+        "x": 520,
+        "y": 220,
+        "wires": [
+            [
+                "filter_commands",
+                "144f43f38a57e436"
+            ]
+        ]
+    },
+    {
+        "id": "3fa5822755e2c207",
+        "type": "function",
+        "z": "rpi_flow_tab",
+        "name": "Stringify for Azure",
+        "func": "// 1. DO NOT Stringify. Send the raw Object.\n// The Azure MQTT node wants an Object, not a String.\nif (typeof msg.payload === 'string') {\n    msg.payload = JSON.parse(msg.payload);\n}\n\n// 2. FORCE the message type to \"telemetry\"\n// This tells Azure exactly what this message is.\nmsg.messageType = \"telemetry\";\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 490,
+        "y": 140,
+        "wires": [
+            [
+                "f80d58b1c0c65cf3"
+            ]
+        ]
+    },
+    {
+        "id": "144f43f38a57e436",
+        "type": "debug",
+        "z": "rpi_flow_tab",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 720,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "arduino_serial_config",
+        "type": "serial-port",
+        "serialport": "/dev/ttyACM0",
+        "serialbaud": "9600",
+        "databits": "8",
+        "parity": "none",
+        "stopbits": "1",
+        "waitfor": "",
+        "dtr": "none",
+        "rts": "none",
+        "cts": "none",
+        "dsr": "none",
+        "newline": "\\n",
+        "bin": "false",
+        "out": "char",
+        "addchar": "",
+        "responsetimeout": "10000"
+    },
+    {
+        "id": "4ef2eab0528dd591",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-node-serialport": "2.0.3",
+            "node-red-contrib-azure-table-storage": "0.1.4",
+            "node-red-contrib-azure-iot-device": "0.2.6"
+        }
+    }
+]

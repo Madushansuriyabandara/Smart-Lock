@@ -1,0 +1,537 @@
+[
+    {
+        "id": "e9528eb1645a28b0",
+        "type": "tab",
+        "label": "Flow 2",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "manual_trigger",
+        "type": "inject",
+        "z": "e9528eb1645a28b0",
+        "name": "Refresh Log",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "1",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 140,
+        "y": 160,
+        "wires": [
+            [
+                "build_sas_url"
+            ]
+        ]
+    },
+    {
+        "id": "build_sas_url",
+        "type": "function",
+        "z": "e9528eb1645a28b0",
+        "name": "Build SAS URL",
+        "func": "// === CONFIGURATION ===\nconst account = \"<STORAGE_ACCOUNT_NAME>\";\nconst table = \"LockLogs\";\n\n// PASTE YOUR SAS TOKEN BELOW\nconst sas = \"YOUR_SAS_TOKEN_HERE\";\n\nconst partition = \"LockHistory\";\n// =====================\n\n// 1. CALCULATE TIME WINDOW (Last 24 Hours)\n// We need to ignore old data so we don't hit the \"1000 item\" limit.\nvar oneDayAgo = new Date().getTime() - (24 * 60 * 60 * 1000);\nvar minRowKey = oneDayAgo.toString();\n\n// 2. BUILD FILTER\n// \"Give me items where Partition is 'LockHistory' AND RowKey is bigger than 'Yesterday'\"\n// Since RowKey is your timestamp, this grabs only new items.\nconst filter = encodeURIComponent(`PartitionKey eq '${partition}' and RowKey ge '${minRowKey}'`);\n\n// 3. CONSTRUCT URL\nvar url = `https://${account}.table.core.windows.net/${table}()`;\nurl += `?$filter=${filter}`;\nurl += `&$top=1000`; // We only need the top 1000 of the *recent* day\nurl += `&${sas.replace('?', '')}`;\n\n// 4. SET REQUEST PROPERTIES\nmsg.url = url;\nmsg.method = \"GET\";\nmsg.headers = {\n    \"Accept\": \"application/json;odata=nometadata\",\n    \"x-ms-version\": \"2019-02-02\"\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 320,
+        "y": 160,
+        "wires": [
+            [
+                "http_request_table"
+            ]
+        ]
+    },
+    {
+        "id": "http_request_table",
+        "type": "http request",
+        "z": "e9528eb1645a28b0",
+        "name": "Get Table Data",
+        "method": "use",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 520,
+        "y": 160,
+        "wires": [
+            [
+                "parse_table_response"
+            ]
+        ]
+    },
+    {
+        "id": "parse_table_response",
+        "type": "function",
+        "z": "e9528eb1645a28b0",
+        "name": "Format for UI",
+        "func": "// 1. Validate\nif (!msg.payload || !msg.payload.value) return null;\n\nvar rows = msg.payload.value;\n\n// 2. SORT (Newest First)\nrows.sort(function (a, b) { return parseInt(b.RowKey) - parseInt(a.RowKey); });\n\n// 3. GET LATEST DOOR STATUS\nvar latest = rows[0];\nvar doorVal = latest.Door || \"UNKNOWN\";\nvar doorColor = (doorVal === \"OPEN\") ? \"red\" : \"green\";\nvar doorPayload = `<b style=\"color:${doorColor}\">${doorVal}</b>`;\n\n// 4. FIND LATEST LOCK STATUS (Scan backwards through history)\nvar lockStatus = \"UNKNOWN\";\nvar lockColor = \"orange\";\n\nfor (var i = 0; i < rows.length; i++) {\n    var evt = rows[i].Event || \"\";\n\n    // FIX: Check for \"UNLOCKED\" explicitly FIRST\n    if (evt.indexOf(\"UNLOCKED\") !== -1) {\n        lockStatus = \"UNLOCKED\";\n        lockColor = \"green\";\n        break; // Found it, stop looking\n    }\n    // If it's not UNLOCKED, check for LOCKED\n    else if (evt.indexOf(\"LOCKED\") !== -1) {\n        lockStatus = \"LOCKED\";\n        lockColor = \"red\";\n        break; // Found it, stop looking\n    }\n}\n\nvar lockPayload = `<b style=\"color:${lockColor}\">${lockStatus}</b>`;\n\n// 5. PREPARE TABLE DATA\nvar tableData = rows.slice(0, 20).map(function (row) {\n    return { \"Time\": row.Time, \"Event\": row.Event, \"Vibration\": row.Vibration };\n});\n\nreturn [\n    { payload: tableData },   // Output 1\n    { payload: lockPayload }, // Output 2\n    { payload: doorPayload }  // Output 3\n];",
+        "outputs": 3,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 720,
+        "y": 160,
+        "wires": [
+            [
+                "ui_table_logs"
+            ],
+            [
+                "2666380b21c07803"
+            ],
+            [
+                "8784a344daa8b4b0"
+            ]
+        ]
+    },
+    {
+        "id": "ui_table_logs",
+        "type": "ui_table",
+        "z": "e9528eb1645a28b0",
+        "group": "accf6bf02e3b79de",
+        "name": "Live Event Logs",
+        "order": 1,
+        "width": 16,
+        "height": 20,
+        "columns": [],
+        "outputs": 0,
+        "cts": false,
+        "x": 920,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "41f69d75d513b94b",
+        "type": "ui_button",
+        "z": "e9528eb1645a28b0",
+        "name": "",
+        "group": "6a94f7c5284f02ac",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "UNLOCK",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "",
+        "payload": "",
+        "payloadType": "str",
+        "topic": "topic",
+        "topicType": "msg",
+        "x": 100,
+        "y": 340,
+        "wires": [
+            [
+                "3fde8d1a6e31dcd3"
+            ]
+        ]
+    },
+    {
+        "id": "3fde8d1a6e31dcd3",
+        "type": "function",
+        "z": "e9528eb1645a28b0",
+        "name": "function 1",
+        "func": "// Define the Target Device\nmsg.deviceId = \"SmartLockPi\";\n\n// Send a SIMPLE STRING. \n// The node will wrap this into an Azure Message object automatically.\nmsg.payload = \"UNLOCK\";\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 260,
+        "y": 340,
+        "wires": [
+            [
+                "3d9ffebecea1dfad"
+            ]
+        ]
+    },
+    {
+        "id": "3d9ffebecea1dfad",
+        "type": "sendc2dmessage",
+        "z": "e9528eb1645a28b0",
+        "deviceId": "SmartLockPi",
+        "name": "Azure IoT Hub C2d Sender",
+        "x": 480,
+        "y": 340,
+        "wires": [
+            [
+                "ed98816e79c709b0"
+            ]
+        ]
+    },
+    {
+        "id": "ed98816e79c709b0",
+        "type": "debug",
+        "z": "e9528eb1645a28b0",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 720,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "9a71dad2814ef136",
+        "type": "ui_button",
+        "z": "e9528eb1645a28b0",
+        "name": "",
+        "group": "6a94f7c5284f02ac",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "LOCK",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "",
+        "payload": "",
+        "payloadType": "str",
+        "topic": "topic",
+        "topicType": "msg",
+        "x": 90,
+        "y": 420,
+        "wires": [
+            [
+                "a236a58232db746b"
+            ]
+        ]
+    },
+    {
+        "id": "a236a58232db746b",
+        "type": "function",
+        "z": "e9528eb1645a28b0",
+        "name": "function 2",
+        "func": "// Define the Target Device\nmsg.deviceId = \"SmartLockPi\";\n\n// Send a SIMPLE STRING. \n// The node will wrap this into an Azure Message object automatically.\nmsg.payload = \"LOCK\";\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 260,
+        "y": 420,
+        "wires": [
+            [
+                "0dacd910e6e3a677"
+            ]
+        ]
+    },
+    {
+        "id": "0dacd910e6e3a677",
+        "type": "sendc2dmessage",
+        "z": "e9528eb1645a28b0",
+        "deviceId": "SmartLockPi",
+        "name": "Azure IoT Hub C2d Sender",
+        "x": 480,
+        "y": 420,
+        "wires": [
+            [
+                "aedddf12cb885717"
+            ]
+        ]
+    },
+    {
+        "id": "aedddf12cb885717",
+        "type": "debug",
+        "z": "e9528eb1645a28b0",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 720,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "2666380b21c07803",
+        "type": "ui_text",
+        "z": "e9528eb1645a28b0",
+        "group": "993f75bf74f927ce",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Lock Status",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": 16,
+        "color": "#000000",
+        "x": 910,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "8784a344daa8b4b0",
+        "type": "ui_text",
+        "z": "e9528eb1645a28b0",
+        "group": "993f75bf74f927ce",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Door Status",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": 16,
+        "color": "#000000",
+        "x": 910,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "256c9686bb893503",
+        "type": "ui_text_input",
+        "z": "e9528eb1645a28b0",
+        "name": "",
+        "label": "Enter PIN",
+        "tooltip": "",
+        "group": "4bddea4513942498",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "mode": "password",
+        "delay": 300,
+        "topic": "topic",
+        "sendOnBlur": true,
+        "className": "",
+        "topicType": "msg",
+        "x": 100,
+        "y": 620,
+        "wires": [
+            [
+                "23353ffd4c2d1cbc"
+            ]
+        ]
+    },
+    {
+        "id": "23353ffd4c2d1cbc",
+        "type": "function",
+        "z": "e9528eb1645a28b0",
+        "name": "function 3",
+        "func": "// 1. CONFIGURATION\nvar correctPin = \"YOUR_PIN_HERE\";\nvar targetTab = \"Smart Lock\"; // MUST match your Tab name exactly (Case sensitive!)\n\n// 2. CONVERT TO STRING (Safety Check)\n// This ensures 1234 (number) becomes \"1234\" (text)\nvar inputPin = msg.payload.toString();\n\n// 3. CHECK PIN\nif (inputPin === correctPin) {\n    // SUCCESS: Switch the tab\n    // The ui_control node expects an object with the \"tab\" property\n    return { payload: { tab: targetTab } };\n} else {\n    // FAIL: Reset the field or show error (Optional)\n    // Sending null does nothing, which is fine for now\n    return null;\n}",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 260,
+        "y": 620,
+        "wires": [
+            [
+                "dd92421f5020f040"
+            ]
+        ]
+    },
+    {
+        "id": "dd92421f5020f040",
+        "type": "ui_ui_control",
+        "z": "e9528eb1645a28b0",
+        "name": "",
+        "events": "all",
+        "x": 420,
+        "y": 620,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "df2f6149965366df",
+        "type": "ui_button",
+        "z": "e9528eb1645a28b0",
+        "name": "",
+        "group": "6a94f7c5284f02ac",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "CLEAR_ALARM",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "",
+        "payload": "",
+        "payloadType": "str",
+        "topic": "topic",
+        "topicType": "msg",
+        "x": 120,
+        "y": 520,
+        "wires": [
+            [
+                "b961e938bf1a3567"
+            ]
+        ]
+    },
+    {
+        "id": "b961e938bf1a3567",
+        "type": "function",
+        "z": "e9528eb1645a28b0",
+        "name": "function 4",
+        "func": "// Define the Target Device\nmsg.deviceId = \"SmartLockPi\";\n\n// Send a SIMPLE STRING. \n// The node will wrap this into an Azure Message object automatically.\nmsg.payload = \"CLEAR_ALARM\";\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 320,
+        "y": 520,
+        "wires": [
+            [
+                "ac13742e2c45cb06"
+            ]
+        ]
+    },
+    {
+        "id": "ac13742e2c45cb06",
+        "type": "sendc2dmessage",
+        "z": "e9528eb1645a28b0",
+        "deviceId": "SmartLockPi",
+        "name": "Azure IoT Hub C2d Sender",
+        "x": 580,
+        "y": 520,
+        "wires": [
+            [
+                "8ed2dbe8285255e6"
+            ]
+        ]
+    },
+    {
+        "id": "8ed2dbe8285255e6",
+        "type": "debug",
+        "z": "e9528eb1645a28b0",
+        "name": "debug 3",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 800,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "57dbf48acce43fc2",
+        "type": "ui_spacer",
+        "z": "e9528eb1645a28b0",
+        "name": "spacer",
+        "group": "993f75bf74f927ce",
+        "order": 2,
+        "width": 1,
+        "height": 1
+    },
+    {
+        "id": "accf6bf02e3b79de",
+        "type": "ui_group",
+        "name": "Table",
+        "tab": "6c8560d86b8f466c",
+        "order": 3,
+        "disp": true,
+        "width": 16,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "6a94f7c5284f02ac",
+        "type": "ui_group",
+        "name": "Lock",
+        "tab": "6c8560d86b8f466c",
+        "order": 1,
+        "disp": true,
+        "width": 9,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "993f75bf74f927ce",
+        "type": "ui_group",
+        "name": "Status",
+        "tab": "6c8560d86b8f466c",
+        "order": 2,
+        "disp": true,
+        "width": 9,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "4bddea4513942498",
+        "type": "ui_group",
+        "name": "Login",
+        "tab": "4b2df30322b28dc5",
+        "order": 1,
+        "disp": true,
+        "width": 6,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "6c8560d86b8f466c",
+        "type": "ui_tab",
+        "name": "Smart Lock",
+        "icon": "dashboard",
+        "order": 2,
+        "disabled": false,
+        "hidden": true
+    },
+    {
+        "id": "4b2df30322b28dc5",
+        "type": "ui_tab",
+        "name": "Login",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "e3984c4eaddd3a42",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-node-ui-table": "0.4.5",
+            "node-red-dashboard": "3.6.6",
+            "node-red-contrib-azure-iot-hub-send-c2d": "0.0.2"
+        }
+    }
+]
