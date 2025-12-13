@@ -1,6 +1,6 @@
 # 🔒 Azure IoT Smart Lock System
 
-[![Watch the Demo Video]https://github.com/Madushansuriyabandara/Smart-Lock/blob/main/assets/Smart%20Lock%20Demo.mp4
+[🎥 Watch the Demo Video](./assets/Smart%20Lock%20Demo.mp4)
 
 > **"A secure, enterprise-grade smart lock system bridging the physical edge with the Azure Cloud via a Raspberry Pi Gateway."**
 
@@ -38,7 +38,7 @@ The system features real-time bi-directional communication: **Telemetry** flows 
 
 The system is divided into three zones: **Edge (Local)**, **Cloud (Azure)**, and **Client (User)**.
 
-![System Architecture Diagram]https://github.com/Madushansuriyabandara/Smart-Lock/blob/main/assets/Architecture.png
+![System Architecture Diagram](./assets/Architecture.png)
 
 ### Data Flow
 1.  **Sensors -> Arduino:** Detects vibration, keypad presses, and door position.
@@ -80,7 +80,7 @@ The complete circuit design is available in the `simulation` folder. You can vie
 
 * **[View Wokwi Project Online](wokwi_project)**
 
-![Circuit Diagram]([./images/wokwi_diagram.png](https://github.com/Madushansuriyabandara/Smart-Lock/blob/main/assets/Wokwi_Simulation.png))
+![Circuit Diagram](./assets/Wokwi_Simulation.png)
 
 ---
 
@@ -129,8 +129,9 @@ The complete circuit design is available in the `simulation` folder. You can vie
 ├── simulation/                  # Extracted Wokwi Project Files
 │   ├── diagram.json             # Wiring logic
 │   └── sketch.ino               # Simulation code
-├── images/
-│   ├── architecture_diagram.png
-│   └── wokwi_diagram.png
+├── assets/
+│   ├── Architecture.png
+│   ├── Smart Lock Demo.mp4
+│   └── Wokwi_Simulation.png
 ├── README.md
 └── LICENSE

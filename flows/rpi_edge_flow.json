@@ -110,7 +110,7 @@
         "isIotcentral": false,
         "scopeid": "",
         "enrollmenttype": "group",
-        "saskey": "HostName=YOUR_IOTHUB_NAME.azure-devices.net;DeviceId=YOUR_DEVICE_ID;SharedAccessKey=YOUR_SHARED_ACCESS_KEY",
+        "saskey": "",
         "certname": "",
         "keyname": "",
         "passphrase": "",
