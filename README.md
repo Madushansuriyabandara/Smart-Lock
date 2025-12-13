@@ -1,6 +1,6 @@
 # 🔒 Azure IoT Smart Lock System
 
-<video src="./assets/Smart%20Lock%20Demo.mp4" width="100%" controls="controls" title="Smart Lock Demo"></video>
+https://github.com/Madushansuriyabandara/Smart-Lock/raw/main/assets/Smart%20Lock%20Demo.mp4
 
 > **"A secure, enterprise-grade smart lock system bridging the physical edge with the Azure Cloud via a Raspberry Pi Gateway."**
 
