@@ -1,6 +1,6 @@
 # 🔒 Azure IoT Smart Lock System
 
-[![Watch the Demo Video](./assets/video_thumbnail.png)](./assets/Smart%20Lock%20Demo.mp4)
+https://github.com/user-attachments/assets/e67f71fa-b2f7-45e5-a293-cae8cd657d06
 
 > **"A secure, enterprise-grade smart lock system bridging the physical edge with the Azure Cloud via a Raspberry Pi Gateway."**
 
@@ -13,7 +13,6 @@
 - [Hardware & Tech Stack](#-hardware--tech-stack)
 - [Circuit & Simulation](#-circuit--simulation)
 - [Installation & Setup](#-installation--setup)
-- [Repository Structure](#-repository-structure)
 
 ---
 
@@ -120,7 +119,3 @@ The complete circuit design is available in the `simulation` folder. You can vie
     * Expose port 1880.
     * Import `flows/cloud_dashboard_flow.json` into the cloud instance.
     * **Configuration:** Update the "Build SAS URL" function node with your SAS Token.
-│   ├── Smart Lock Demo.mp4
-│   └── Wokwi_Simulation.png
-├── README.md
-└── LICENSE
