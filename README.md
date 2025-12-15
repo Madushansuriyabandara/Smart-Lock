@@ -1,6 +1,7 @@
 # 🔒 Azure IoT Smart Lock System
 
-https://github.com/user-attachments/assets/e67f71fa-b2f7-45e5-a293-cae8cd657d06
+
+https://github.com/user-attachments/assets/f8cc9440-e8ee-410a-8791-0ab19f55869e
 
 > **"A secure, enterprise-grade smart lock system bridging the physical edge with the Azure Cloud via a Raspberry Pi Gateway."**
 
